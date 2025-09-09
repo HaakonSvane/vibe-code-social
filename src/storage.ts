@@ -8,7 +8,10 @@ export function loadSpots(): CroissantSpot[] {
     const raw = localStorage.getItem(KEY);
     if (!raw) return [];
     const data = JSON.parse(raw) as CroissantSpot[];
-    return Array.isArray(data) ? data : [];
+    const normalized = Array.isArray(data)
+      ? data.map(s => ({ ...s, rating: typeof s.rating === 'number' ? s.rating : undefined }))
+      : [];
+    return normalized;
   } catch {
     return [];
   }

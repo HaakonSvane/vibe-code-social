@@ -10,6 +10,14 @@ export const App: React.FC = () => {
   const [isDrawerOpen, setIsDrawerOpen] = React.useState(true);
   const [isMobile, setIsMobile] = React.useState(false);
   const mapRef = React.useRef<CroissantMapRef>(null);
+  const [theme, setTheme] = React.useState<string>(() =>
+    localStorage.getItem("theme") || "light"
+  );
+
+  React.useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    localStorage.setItem("theme", theme);
+  }, [theme]);
 
   // Check if we're on mobile
   React.useEffect(() => {
@@ -74,38 +82,59 @@ export const App: React.FC = () => {
         <button
           className="drawer-backdrop open"
           onClick={() => setIsDrawerOpen(false)}
-          onKeyDown={(e) => {
-            if (e.key === "Escape") {
-              setIsDrawerOpen(false);
-            }
-          }}
           aria-label="Close drawer"
-          style={{
-            background: "none",
-            border: "none",
-            padding: 0,
-            cursor: "pointer",
-          }}
         />
       )}
 
       <header
+        className="app-header"
         style={{
           padding: "0.75rem 1rem",
-          borderBottom: "1px solid #eee",
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
           gap: "1rem",
-          background: "#fff",
           zIndex: 1000,
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
           <Avatar />
+          <div
+            style={{
+              fontWeight: 600,
+              letterSpacing: "0.5px",
+              fontSize: "14px",
+            }}
+          >
+            Croissant Atlas
+          </div>
+          <span
+            className="badge"
+            style={{ display: isMobile ? "none" : "inline-block" }}
+          >
+            Local Only
+          </span>
         </div>
-        <div style={{ fontSize: 12, opacity: 0.6 }}>
-          Add croissant spots. Data stored locally.
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "1.25rem",
+          }}
+        >
+          <div className="dark-toggle" title="Toggle dark mode">
+            <label className="switch">
+              <input
+                type="checkbox"
+                checked={theme === "dark"}
+                onChange={() =>
+                  setTheme(theme === "dark" ? "light" : "dark")
+                }
+                aria-label="Toggle dark mode"
+              />
+              <span className="slider" />
+            </label>
+          </div>
         </div>
       </header>
       <main
@@ -123,79 +152,33 @@ export const App: React.FC = () => {
             spots={spots}
             onAddSpot={addSpot}
             onRemoveSpot={removeSpot}
+            onUpdateSpot={updateSpot}
           />
-
           {/* Floating Hamburger Button */}
           <button
             onClick={() => setIsDrawerOpen(!isDrawerOpen)}
-            className="floating-hamburger"
+            className="floating-hamburger btn"
             style={{
               position: "absolute",
-              top: "20px",
-              right: "20px",
-              backgroundColor: isDrawerOpen ? "#ff9f43" : "#fff",
-              border: "1px solid #ddd",
-              borderRadius: "8px",
-              padding: "12px",
-              cursor: "pointer",
-              fontSize: "14px",
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              transition: "all 0.2s ease",
-              color: isDrawerOpen ? "white" : "#333",
-              fontWeight: isDrawerOpen ? "500" : "normal",
-              minWidth: "140px",
-              justifyContent: "center",
-              zIndex: 1000,
-              boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
-            }}
-            onMouseOver={(e) => {
-              e.currentTarget.style.backgroundColor = isDrawerOpen
-                ? "#ff8f23"
-                : "#f8f8f8";
-              e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.2)";
-            }}
-            onFocus={(e) => {
-              e.currentTarget.style.backgroundColor = isDrawerOpen
-                ? "#ff8f23"
-                : "#f8f8f8";
-              e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.2)";
-            }}
-            onMouseOut={(e) => {
-              e.currentTarget.style.backgroundColor = isDrawerOpen
-                ? "#ff9f43"
-                : "#fff";
-              e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.15)";
-            }}
-            onBlur={(e) => {
-              e.currentTarget.style.backgroundColor = isDrawerOpen
-                ? "#ff9f43"
-                : "#fff";
-              e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.15)";
+              top: 20,
+              right: 12, // small constant gap from the right edge (adjacent to drawer when open)
+              background: isDrawerOpen ? "var(--accent)" : "var(--panel)",
+              color: isDrawerOpen ? "#fff" : "var(--text)",
+              border: isDrawerOpen ? 'none' : '1px solid var(--border)',
+              borderRadius: "var(--radius)",
+              padding: "12px 16px",
+              boxShadow: "var(--shadow)",
+              fontWeight: 500,
+              zIndex: 1200,
+              transition: 'background 140ms ease, color 140ms ease'
             }}
             title={isDrawerOpen ? "Hide pins list" : "Show pins list"}
           >
             {/* Hamburger Icon */}
             <div className={`hamburger-icon ${isDrawerOpen ? "open" : ""}`}>
-              <div
-                className="hamburger-line"
-                style={{
-                  backgroundColor: isDrawerOpen ? "white" : "#333",
-                }}
-              />
-              <div
-                className="hamburger-line"
-                style={{
-                  backgroundColor: isDrawerOpen ? "white" : "#333",
-                }}
-              />
-              <div
-                className="hamburger-line"
-                style={{
-                  backgroundColor: isDrawerOpen ? "white" : "#333",
-                }}
-              />
+              <div className="hamburger-line" />
+              <div className="hamburger-line" />
+              <div className="hamburger-line" />
             </div>
             <span>
               {isDrawerOpen ? "Hide" : "Show"} ({spots.length})
@@ -205,21 +188,22 @@ export const App: React.FC = () => {
         <div
           className={`drawer-container ${isDrawerOpen ? "open" : ""}`}
           style={{
-            width: isDrawerOpen ? "350px" : "0px",
-            borderLeft: isDrawerOpen ? "1px solid #eee" : "none",
-            backgroundColor: "#fafafa",
+            width: isDrawerOpen ? 350 : 0,
+            borderLeft: isDrawerOpen ? '1px solid var(--border)' : 'none',
+            background: "var(--panel)",
+            backdropFilter: "blur(14px) saturate(160%)",
             height: "100%",
             display: "flex",
             flexDirection: "column",
             overflow: "hidden",
             position: "relative",
-            zIndex: 100, // Lower z-index than floating button but above map
+            zIndex: 100,
           }}
         >
           {isDrawerOpen && (
             <div
               style={{
-                width: "350px",
+                width: 350,
                 height: "100%",
                 display: "flex",
                 flexDirection: "column",

@@ -10,6 +10,50 @@ interface PinsListProps {
   onNavigateToSpot?: (lat: number, lng: number) => void;
 }
 
+const starStyle: React.CSSProperties = {
+  cursor: "pointer",
+  fontSize: "16px",
+  lineHeight: "1",
+  userSelect: "none",
+};
+
+function RatingStars({
+  value,
+  onChange,
+}: {
+  value?: number;
+  onChange: (val: number) => void;
+}) {
+  return (
+    <div style={{ display: "flex", gap: 2 }}>
+      {[1, 2, 3, 4, 5].map((n) => (
+        <span
+          key={n}
+          style={{
+            ...starStyle,
+            color: (value ?? 0) >= n ? "#ffc107" : "#ddd",
+          }}
+          role="button"
+          aria-label={`Rate ${n} star${n > 1 ? "s" : ""}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            onChange(n);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              onChange(n);
+            }
+          }}
+          tabIndex={0}
+        >
+          ★
+        </span>
+      ))}
+    </div>
+  );
+}
+
 export const PinsList: React.FC<PinsListProps> = ({
   spots,
   onRemoveSpot,
@@ -67,59 +111,62 @@ export const PinsList: React.FC<PinsListProps> = ({
   }, [spots, loadingAddresses, fetchedSpots, handleCachedAddress]);
 
   // Debounced fetch function to prevent rapid successive calls
-  const fetchAddresses = useCallback(async (spotsToFetch: CroissantSpot[]) => {
-    if (spotsToFetch.length === 0) return;
+  const fetchAddresses = useCallback(
+    async (spotsToFetch: CroissantSpot[]) => {
+      if (spotsToFetch.length === 0) return;
 
-    console.log(`Fetching addresses for ${spotsToFetch.length} spots`);
+      console.log(`Fetching addresses for ${spotsToFetch.length} spots`);
 
-    // Set loading state for these spots
-    setLoadingAddresses(
-      (prev) => new Set([...prev, ...spotsToFetch.map((s) => s.id)])
-    );
+      // Set loading state for these spots
+      setLoadingAddresses(
+        (prev) => new Set([...prev, ...spotsToFetch.map((s) => s.id)])
+      );
 
-    // Mark these spots as being processed
-    setFetchedSpots(
-      (prev) => new Set([...prev, ...spotsToFetch.map((s) => s.id)])
-    );
+      // Mark these spots as being processed
+      setFetchedSpots(
+        (prev) => new Set([...prev, ...spotsToFetch.map((s) => s.id)])
+      );
 
-    // Fetch addresses sequentially to be respectful to the API
-    for (const spot of spotsToFetch) {
-      try {
-        // Add a small delay between requests to be respectful to the API
-        const currentIndex = spotsToFetch.indexOf(spot);
-        if (currentIndex > 0) {
-          await new Promise((resolve) => setTimeout(resolve, 1000));
+      // Fetch addresses sequentially to be respectful to the API
+      for (const spot of spotsToFetch) {
+        try {
+          // Add a small delay between requests to be respectful to the API
+          const currentIndex = spotsToFetch.indexOf(spot);
+          if (currentIndex > 0) {
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+          }
+
+          const address = await reverseGeocode(spot.lat, spot.lng);
+
+          const updatedSpot = { ...spot, address };
+
+          setSpotsWithAddresses((prev) => {
+            const spotIndex = prev.findIndex((s) => s.id === spot.id);
+            if (spotIndex === -1) return prev;
+
+            const updated = [...prev];
+            updated[spotIndex] = updatedSpot;
+            return updated;
+          });
+
+          // Notify parent component of the update
+          if (onUpdateSpot) {
+            onUpdateSpot(updatedSpot);
+          }
+        } catch (error) {
+          console.error(`Failed to fetch address for spot ${spot.id}:`, error);
+        } finally {
+          // Remove from loading state
+          setLoadingAddresses((prev) => {
+            const newSet = new Set(prev);
+            newSet.delete(spot.id);
+            return newSet;
+          });
         }
-
-        const address = await reverseGeocode(spot.lat, spot.lng);
-
-        const updatedSpot = { ...spot, address };
-
-        setSpotsWithAddresses((prev) => {
-          const spotIndex = prev.findIndex((s) => s.id === spot.id);
-          if (spotIndex === -1) return prev;
-
-          const updated = [...prev];
-          updated[spotIndex] = updatedSpot;
-          return updated;
-        });
-
-        // Notify parent component of the update
-        if (onUpdateSpot) {
-          onUpdateSpot(updatedSpot);
-        }
-      } catch (error) {
-        console.error(`Failed to fetch address for spot ${spot.id}:`, error);
-      } finally {
-        // Remove from loading state
-        setLoadingAddresses((prev) => {
-          const newSet = new Set(prev);
-          newSet.delete(spot.id);
-          return newSet;
-        });
       }
-    }
-  }, []);
+    },
+    [onUpdateSpot]
+  );
 
   // Effect to handle new spots that need addresses
   useEffect(() => {
@@ -323,12 +370,22 @@ export const PinsList: React.FC<PinsListProps> = ({
                       color: "#888",
                       display: "flex",
                       gap: "16px",
+                      alignItems: "center",
                     }}
                   >
                     <span>📅 {formatDate(spot.createdAt)}</span>
                     <span>
                       🌍 {spot.lat.toFixed(6)}, {spot.lng.toFixed(6)}
                     </span>
+                  </div>
+
+                  <div style={{ marginTop: 8 }}>
+                    <RatingStars
+                      value={spot.rating}
+                      onChange={(val) =>
+                        onUpdateSpot && onUpdateSpot({ ...spot, rating: val })
+                      }
+                    />
                   </div>
                 </div>
 
