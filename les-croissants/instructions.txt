@@ -1,0 +1,2 @@
+create a new react app with typescript and vite
+the app should show a map where the user could add places where they have eaten a croissant

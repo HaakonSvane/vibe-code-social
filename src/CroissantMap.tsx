@@ -3,7 +3,6 @@ import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
 import { Icon } from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { CroissantSpot } from "./types";
-import { loadSpots, saveSpots } from "./storage";
 
 // Create a custom croissant icon
 const croissantIcon = new Icon({
@@ -19,6 +18,12 @@ interface AddHandlerProps {
   onAdd: (lat: number, lng: number) => void;
 }
 
+interface CroissantMapProps {
+  spots: CroissantSpot[];
+  onAddSpot: (lat: number, lng: number) => void;
+  onRemoveSpot: (id: string) => void;
+}
+
 const AddHandler: React.FC<AddHandlerProps> = ({ onAdd }) => {
   useMapEvents({
     click(e) {
@@ -28,33 +33,11 @@ const AddHandler: React.FC<AddHandlerProps> = ({ onAdd }) => {
   return null;
 };
 
-export const CroissantMap: React.FC = () => {
-  const [spots, setSpots] = React.useState<CroissantSpot[]>(() => loadSpots());
-
-  function addSpot(lat: number, lng: number) {
-    setSpots((prev) => {
-      const next = [
-        ...prev,
-        {
-          id: crypto.randomUUID(),
-          lat,
-          lng,
-          createdAt: new Date().toISOString(),
-        },
-      ];
-      saveSpots(next);
-      return next;
-    });
-  }
-
-  function removeSpot(id: string) {
-    setSpots((prev) => {
-      const next = prev.filter((s) => s.id !== id);
-      saveSpots(next);
-      return next;
-    });
-  }
-
+export const CroissantMap: React.FC<CroissantMapProps> = ({
+  spots,
+  onAddSpot,
+  onRemoveSpot,
+}) => {
   return (
     <div style={{ flex: 1, minHeight: 0 }}>
       <MapContainer
@@ -66,14 +49,14 @@ export const CroissantMap: React.FC = () => {
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        <AddHandler onAdd={addSpot} />
+        <AddHandler onAdd={onAddSpot} />
         {spots.map((s) => (
           <Marker
             key={s.id}
             position={[s.lat, s.lng]}
             icon={croissantIcon}
             eventHandlers={{
-              contextmenu: () => removeSpot(s.id),
+              contextmenu: () => onRemoveSpot(s.id),
             }}
           />
         ))}

@@ -4,4 +4,9 @@ export interface CroissantSpot {
   lng: number;
   createdAt: string; // ISO timestamp
   note?: string;
+  address?: {
+    displayName: string;
+    shortAddress: string;
+    fullAddress: string;
+  };
 }

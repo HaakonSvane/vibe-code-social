@@ -6,8 +6,27 @@
     <title>Croissant Map</title>
     <link rel="icon" type="image/svg+xml" href="/croissant.svg" />
     <style>
-      body,html,#root { height:100%; margin:0; font-family: system-ui, sans-serif; }
+      body,html,#root { height:100%; margin:0; font-family: system-ui, sans-serif; overflow: hidden; }
       #root { display:flex; flex-direction:column; }
+      
+      /* Custom scrollbar styling for webkit browsers */
+      .pins-list-scroll::-webkit-scrollbar {
+        width: 8px;
+      }
+      
+      .pins-list-scroll::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 4px;
+      }
+      
+      .pins-list-scroll::-webkit-scrollbar-thumb {
+        background: #c1c1c1;
+        border-radius: 4px;
+      }
+      
+      .pins-list-scroll::-webkit-scrollbar-thumb:hover {
+        background: #a8a8a8;
+      }
     </style>
   </head>
   <body>
