@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -28,8 +28,8 @@ model User {
 
 model Game {
   id        String   @id @default(cuid())
-  type      GameType
-  status    GameStatus @default(WAITING)
+  type      String   // "SOLO" or "MULTIPLAYER"
+  status    String   @default("WAITING") // "WAITING", "IN_PROGRESS", "FINISHED", "CANCELLED"
   currentRound Int     @default(1)
   maxRounds    Int     @default(5)
   createdAt DateTime @default(now())
@@ -123,7 +123,7 @@ model Challenge {
   challenged   User   @relation("Challenged", fields: [challengedId], references: [id])
   
   message   String?
-  status    ChallengeStatus @default(PENDING)
+  status    String @default("PENDING") // "PENDING", "ACCEPTED", "DECLINED", "EXPIRED"
   expiresAt DateTime
   
   createdAt DateTime @default(now())
@@ -132,21 +132,4 @@ model Challenge {
   @@map("challenges")
 }
 
-enum GameType {
-  SOLO
-  MULTIPLAYER
-}
 
-enum GameStatus {
-  WAITING
-  IN_PROGRESS
-  FINISHED
-  CANCELLED
-}
-
-enum ChallengeStatus {
-  PENDING
-  ACCEPTED
-  DECLINED
-  EXPIRED
-}

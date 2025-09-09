@@ -1,19 +1,27 @@
 import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
 async function main() {
   console.log('🌱 Seeding database...');
   
-  // You can add seed data here, for example:
-  // await prisma.user.create({
-  //   data: {
-  //     email: 'demo@hitguessr.com',
-  //     username: 'demo',
-  //     password: '$2a$12$...' // hashed password
-  //   }
-  // });
+  // Create a demo user
+  const hashedPassword = await bcrypt.hash('demo123', 12);
+  
+  const demoUser = await prisma.user.upsert({
+    where: { email: 'demo@hitguessr.com' },
+    update: {},
+    create: {
+      email: 'demo@hitguessr.com',
+      username: 'demo',
+      password: hashedPassword
+    }
+  });
 
+  console.log(`✅ Created demo user: ${demoUser.username}`);
+  console.log('📧 Email: demo@hitguessr.com');
+  console.log('🔑 Password: demo123');
   console.log('✅ Database seeded successfully');
 }
 

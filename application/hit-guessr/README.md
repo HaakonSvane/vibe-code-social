@@ -23,19 +23,16 @@ A music guessing game inspired by GeoGuessr and Hitster where players listen to 
 - Node.js with Express
 - TypeScript
 - Socket.io for WebSocket connections
-- Prisma ORM with PostgreSQL
+- Prisma ORM with SQLite
 - Spotify Web API integration
 
 ### Database
-- PostgreSQL for persistent data
-- Redis for session management and caching
+- SQLite for persistent data (no external database required)
 
 ## Getting Started
 
 ### Prerequisites
 - Node.js 18+
-- PostgreSQL
-- Redis (optional, for production)
 - Spotify Developer Account
 
 ### Installation
@@ -59,14 +56,16 @@ cp client/.env.example client/.env
 
 4. Configure your environment variables in `server/.env`:
 ```
-DATABASE_URL="postgresql://username:password@localhost:5432/hitguessr"
+DATABASE_URL="file:./dev.db"
 SPOTIFY_CLIENT_ID="your_spotify_client_id"
 SPOTIFY_CLIENT_SECRET="your_spotify_client_secret"
 JWT_SECRET="your_jwt_secret"
-REDIS_URL="redis://localhost:6379"
+PORT=3000
+NODE_ENV="development"
+CLIENT_URL="http://localhost:5173"
 ```
 
-5. Set up the database:
+5. Set up the database (SQLite will be created automatically):
 ```bash
 npm run db:migrate
 npm run db:seed
