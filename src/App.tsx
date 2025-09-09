@@ -38,6 +38,16 @@ export const App: React.FC = () => {
     });
   }
 
+  function updateSpot(updatedSpot: CroissantSpot) {
+    setSpots((prev) => {
+      const next = prev.map((spot) =>
+        spot.id === updatedSpot.id ? updatedSpot : spot
+      );
+      saveSpots(next);
+      return next;
+    });
+  }
+
   function removeSpot(id: string) {
     setSpots((prev) => {
       const next = prev.filter((s) => s.id !== id);
@@ -203,7 +213,11 @@ export const App: React.FC = () => {
                 flexDirection: "column",
               }}
             >
-              <PinsList spots={spots} onRemoveSpot={removeSpot} />
+              <PinsList
+                spots={spots}
+                onRemoveSpot={removeSpot}
+                onUpdateSpot={updateSpot}
+              />
             </div>
           )}
         </div>

@@ -1,52 +1,114 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { CroissantSpot } from "./types";
 import { reverseGeocode } from "./geocoding";
+import { isAddressCached } from "./addressCache";
 
 interface PinsListProps {
   spots: CroissantSpot[];
   onRemoveSpot: (id: string) => void;
+  onUpdateSpot?: (updatedSpot: CroissantSpot) => void;
 }
 
-export const PinsList: React.FC<PinsListProps> = ({ spots, onRemoveSpot }) => {
+export const PinsList: React.FC<PinsListProps> = ({
+  spots,
+  onRemoveSpot,
+  onUpdateSpot,
+}) => {
   const [spotsWithAddresses, setSpotsWithAddresses] =
     useState<CroissantSpot[]>(spots);
   const [loadingAddresses, setLoadingAddresses] = useState<Set<string>>(
     new Set()
   );
+  const [fetchedSpots, setFetchedSpots] = useState<Set<string>>(new Set());
 
-  // Fetch addresses for spots that don't have them
-  useEffect(() => {
-    const fetchAddresses = async () => {
-      const spotsNeedingAddresses = spots.filter((spot) => !spot.address);
+  // Handle cached address loading
+  const handleCachedAddress = useCallback(
+    async (spot: CroissantSpot) => {
+      const address = await reverseGeocode(spot.lat, spot.lng);
+      const updatedSpot = { ...spot, address };
 
-      if (spotsNeedingAddresses.length === 0) {
-        setSpotsWithAddresses(spots);
-        return;
+      setSpotsWithAddresses((prev) => {
+        const updated = prev.map((s) => (s.id === spot.id ? updatedSpot : s));
+        return updated;
+      });
+
+      // Notify parent component of the update
+      if (onUpdateSpot) {
+        onUpdateSpot(updatedSpot);
+      }
+    },
+    [onUpdateSpot]
+  );
+
+  // Memoize spots that need addresses to prevent unnecessary recalculations
+  const spotsNeedingAddresses = useMemo(() => {
+    return spots.filter((spot) => {
+      // Skip if we already have an address
+      if (spot.address) return false;
+
+      // Skip if we're currently loading this spot
+      if (loadingAddresses.has(spot.id)) return false;
+
+      // Skip if we've already attempted to fetch this spot in this session
+      if (fetchedSpots.has(spot.id)) return false;
+
+      // Skip if we have a cached address for these coordinates
+      if (isAddressCached(spot.lat, spot.lng)) {
+        // Fetch from cache immediately
+        handleCachedAddress(spot);
+        setFetchedSpots((prev) => new Set([...prev, spot.id]));
+        return false;
       }
 
-      // Set loading state for these spots
-      setLoadingAddresses(new Set(spotsNeedingAddresses.map((s) => s.id)));
+      return true;
+    });
+  }, [spots, loadingAddresses, fetchedSpots, handleCachedAddress]);
 
-      // Fetch addresses sequentially to be respectful to the API
-      const updatedSpots = [...spots];
+  // Debounced fetch function to prevent rapid successive calls
+  const fetchAddresses = useCallback(async (spotsToFetch: CroissantSpot[]) => {
+    if (spotsToFetch.length === 0) return;
 
-      for (const spot of spotsNeedingAddresses) {
-        try {
-          // Add a small delay between requests to be respectful to the API
-          const currentIndex = spotsNeedingAddresses.indexOf(spot);
-          if (currentIndex > 0) {
-            await new Promise((resolve) => setTimeout(resolve, 1000));
-          }
+    console.log(`Fetching addresses for ${spotsToFetch.length} spots`);
 
-          const address = await reverseGeocode(spot.lat, spot.lng);
-          const spotIndex = updatedSpots.findIndex((s) => s.id === spot.id);
-          if (spotIndex !== -1) {
-            updatedSpots[spotIndex] = { ...spot, address };
-          }
-        } catch (error) {
-          console.error(`Failed to fetch address for spot ${spot.id}:`, error);
+    // Set loading state for these spots
+    setLoadingAddresses(
+      (prev) => new Set([...prev, ...spotsToFetch.map((s) => s.id)])
+    );
+
+    // Mark these spots as being processed
+    setFetchedSpots(
+      (prev) => new Set([...prev, ...spotsToFetch.map((s) => s.id)])
+    );
+
+    // Fetch addresses sequentially to be respectful to the API
+    for (const spot of spotsToFetch) {
+      try {
+        // Add a small delay between requests to be respectful to the API
+        const currentIndex = spotsToFetch.indexOf(spot);
+        if (currentIndex > 0) {
+          await new Promise((resolve) => setTimeout(resolve, 1000));
         }
 
+        const address = await reverseGeocode(spot.lat, spot.lng);
+
+        const updatedSpot = { ...spot, address };
+
+        setSpotsWithAddresses((prev) => {
+          const spotIndex = prev.findIndex((s) => s.id === spot.id);
+          if (spotIndex === -1) return prev;
+
+          const updated = [...prev];
+          updated[spotIndex] = updatedSpot;
+          return updated;
+        });
+
+        // Notify parent component of the update
+        if (onUpdateSpot) {
+          onUpdateSpot(updatedSpot);
+        }
+      } catch (error) {
+        console.error(`Failed to fetch address for spot ${spot.id}:`, error);
+      } finally {
         // Remove from loading state
         setLoadingAddresses((prev) => {
           const newSet = new Set(prev);
@@ -54,12 +116,30 @@ export const PinsList: React.FC<PinsListProps> = ({ spots, onRemoveSpot }) => {
           return newSet;
         });
       }
+    }
+  }, []);
 
-      setSpotsWithAddresses(updatedSpots);
-    };
+  // Effect to handle new spots that need addresses
+  useEffect(() => {
+    // Update spots with addresses state when spots change
+    setSpotsWithAddresses(spots);
 
-    fetchAddresses();
-  }, [spots]);
+    // Fetch addresses for new spots
+    if (spotsNeedingAddresses.length > 0) {
+      // Use a timeout to debounce rapid changes
+      const timeoutId = setTimeout(() => {
+        fetchAddresses(spotsNeedingAddresses);
+      }, 100);
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [
+    spots,
+    spotsNeedingAddresses,
+    fetchAddresses,
+    onUpdateSpot,
+    handleCachedAddress,
+  ]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {
