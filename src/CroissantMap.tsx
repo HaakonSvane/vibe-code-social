@@ -2,6 +2,7 @@ import React, { useRef, useImperativeHandle, forwardRef } from "react";
 import { MapContainer, TileLayer, Marker, useMapEvents, Popup } from "react-leaflet";
 import L, { Icon } from "leaflet";
 import "leaflet/dist/leaflet.css";
+import "./mapOverrides.css"; // hide default zoom control
 import { CroissantSpot } from "./types";
 
 // Base croissant image
@@ -102,6 +103,42 @@ export const CroissantMap = forwardRef<CroissantMapRef, CroissantMapProps>(
   ({ spots, onAddSpot, onRemoveSpot, onUpdateSpot }, ref) => {
     const mapRef = useRef<L.Map | null>(null);
     const containerRef = useRef<HTMLDivElement | null>(null);
+    const [searchOpen, setSearchOpen] = React.useState(true);
+
+    // Basic Nominatim search
+    interface SearchResult { lat: string; lon: string; display_name: string; }
+    const [query, setQuery] = React.useState("");
+    const [results, setResults] = React.useState<SearchResult[]>([]);
+    const [loading, setLoading] = React.useState(false);
+    const [error, setError] = React.useState<string | null>(null);
+    const abortRef = useRef<AbortController | null>(null);
+
+    React.useEffect(() => {
+      if (!query.trim()) { setResults([]); setError(null); return; }
+      setLoading(true); setError(null);
+      if (abortRef.current) abortRef.current.abort();
+      const ac = new AbortController();
+      abortRef.current = ac;
+      const delay = setTimeout(() => {
+        // Note: For production heavy usage self-host or add proper server proxy & email param.
+        const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&q=${encodeURIComponent(query)}`;
+        fetch(url, { headers: { 'Accept': 'application/json' }, signal: ac.signal })
+          .then(r => { if (!r.ok) throw new Error(r.status + ' ' + r.statusText); return r.json(); })
+          .then((data: SearchResult[]) => { setResults(data); })
+          .catch(e => { if (e.name !== 'AbortError') setError('Search failed'); })
+          .finally(() => setLoading(false));
+      }, 350); // debounce
+      return () => { clearTimeout(delay); ac.abort(); };
+    }, [query]);
+
+    function selectResult(r: SearchResult) {
+      const lat = parseFloat(r.lat); const lng = parseFloat(r.lon);
+      if (mapRef.current) {
+        mapRef.current.flyTo([lat, lng], 16, { duration: 1.1 });
+      }
+      setResults([]);
+      setQuery(r.display_name);
+    }
 
     useImperativeHandle(
       ref,
@@ -138,11 +175,12 @@ export const CroissantMap = forwardRef<CroissantMapRef, CroissantMapProps>(
     }, []);
 
     return (
-      <div ref={containerRef} style={{ flex: 1, minHeight: 0 }}>
+      <div ref={containerRef} style={{ flex: 1, minHeight: 0, position:'relative' }}>
         <MapContainer
           center={spots[0] ? [spots[0].lat, spots[0].lng] : defaultCenter}
-          zoom={13}
-          style={{ height: "100%", width: "100%" }}
+            zoom={13}
+            zoomControl={false}
+            style={{ height: "100%", width: "100%" }}
         >
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -175,6 +213,56 @@ export const CroissantMap = forwardRef<CroissantMapRef, CroissantMapProps>(
             </Marker>
           ))}
         </MapContainer>
+  {/* Search UI Overlay */}
+        <div style={{ position:'absolute', top:12, left:12, zIndex:1200, width: searchOpen? 300: 46, transition:'width 160ms ease' }}>
+          <div style={{ display:'flex', gap:8, alignItems:'center' }}>
+            <button
+              onClick={() => setSearchOpen(o=>!o)}
+              style={{ background:'var(--panel)', border:'1px solid var(--border)', borderRadius:8, padding:'8px 10px', cursor:'pointer', display:'flex', alignItems:'center', gap:4, boxShadow:'var(--shadow)' }}
+              title={searchOpen? 'Collapse search' : 'Expand search'}
+            >
+              <span style={{ fontSize:14 }}>🔍</span>{searchOpen && <span style={{ fontSize:12, fontWeight:500 }}>Search</span>}
+            </button>
+            {searchOpen && (
+              <div style={{ flex:1, position:'relative' }}>
+                <input
+                  value={query}
+                  onChange={e=> setQuery(e.target.value)}
+                  placeholder="Search places (OSM)"
+                  style={{ width:'100%', padding:'8px 10px', border:'1px solid var(--border)', borderRadius:8, background:'var(--panel)', color:'var(--text)', fontSize:13 }}
+                  aria-label="Search places"
+                />
+                {loading && <div style={{ position:'absolute', top:8, right:10, fontSize:11, opacity:.6 }}>…</div>}
+                {error && <div style={{ position:'absolute', top:'100%', left:0, marginTop:4, fontSize:11, color:'#e03131' }}>{error}</div>}
+                {results.length>0 && (
+                  <ul style={{ listStyle:'none', margin:0, padding:0, position:'absolute', top:'100%', left:0, right:0, background:'var(--panel)', border:'1px solid var(--border)', borderRadius:8, marginTop:4, maxHeight:240, overflowY:'auto', boxShadow:'0 4px 14px rgba(0,0,0,0.25)' }}>
+                    {results.map(r => (
+                      <li key={r.lat+','+r.lon}>
+                        <button
+                          onClick={() => selectResult(r)}
+                          style={{ all:'unset', display:'block', width:'100%', textAlign:'left', padding:'8px 10px', cursor:'pointer', fontSize:12, lineHeight:1.3 }}
+                        >{r.display_name}</button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+        {/* Custom Zoom Control below search */}
+        <div style={{ position:'absolute', left:12, zIndex:1200, top: searchOpen ? 70 : 64, display:'flex', flexDirection:'column', gap:6 }}>
+          <button
+            onClick={() => mapRef.current?.zoomIn()}
+            style={{ width:44, height:44, borderRadius:10, border:'1px solid var(--border)', background:'var(--panel)', cursor:'pointer', fontSize:20, fontWeight:600, boxShadow:'var(--shadow)', display:'flex', alignItems:'center', justifyContent:'center' }}
+            aria-label="Zoom in"
+          >+</button>
+          <button
+            onClick={() => mapRef.current?.zoomOut()}
+            style={{ width:44, height:44, borderRadius:10, border:'1px solid var(--border)', background:'var(--panel)', cursor:'pointer', fontSize:22, fontWeight:600, boxShadow:'var(--shadow)', display:'flex', alignItems:'center', justifyContent:'center' }}
+            aria-label="Zoom out"
+          >−</button>
+        </div>
         <div className="rating-legend" aria-label="Rating legend" style={{ zIndex:1100, pointerEvents:'auto' }}>
           <div style={{ fontWeight:600, fontSize:11, letterSpacing:'.5px', textTransform:'uppercase', opacity:.8 }}>Ratings</div>
           {[5,4,3,2,1].map(r => (
