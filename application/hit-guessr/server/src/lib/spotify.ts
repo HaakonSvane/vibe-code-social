@@ -84,9 +84,20 @@ class SpotifyService {
         }
       );
 
-      return response.data.tracks.items.filter(track => 
+      // First try to get tracks with preview URLs
+      const tracksWithPreviews = response.data.tracks.items.filter(track => 
         track.preview_url !== null && track.popularity > 30
       );
+
+      // If we have tracks with previews, return them
+      if (tracksWithPreviews.length > 0) {
+        return tracksWithPreviews;
+      }
+
+      // Otherwise, return tracks without preview URL filtering (game still playable without audio)
+      console.warn('No tracks with preview URLs found, returning tracks without previews');
+      return response.data.tracks.items.filter(track => track.popularity > 30);
+      
     } catch (error) {
       console.error('Failed to search Spotify tracks:', error);
       throw new Error('Failed to search tracks');
@@ -107,20 +118,28 @@ class SpotifyService {
 
     try {
       const queries = [
-        // Popular decades and genres
-        'year:1980-1989',
-        'year:1990-1999', 
-        'year:2000-2009',
-        'year:2010-2019',
-        'genre:pop',
-        'genre:rock',
-        'genre:hip-hop',
-        'genre:indie',
-        'genre:electronic'
+        // Popular tracks that are more likely to have previews
+        'track:"love" year:2010-2023',
+        'track:"heart" year:2000-2020',
+        'artist:"taylor swift"',
+        'artist:"ed sheeran"',
+        'artist:"adele"',
+        'artist:"bruno mars"',
+        'genre:pop year:2015-2023',
+        'genre:rock year:1980-2000',
+        'genre:hip-hop year:2010-2023',
+        'track:"dance" year:2010-2023',
+        'track:"night" year:2000-2020'
       ];
 
       const randomQuery = queries[Math.floor(Math.random() * queries.length)];
+      console.log(`Searching Spotify with query: ${randomQuery}`);
       const tracks = await this.searchTracks(randomQuery, 50);
+      
+      if (tracks.length === 0) {
+        console.warn('No tracks found from Spotify API, falling back to mock data');
+        return this.getMockTracks(limit);
+      }
       
       // Shuffle and return requested number
       const shuffled = tracks.sort(() => 0.5 - Math.random());

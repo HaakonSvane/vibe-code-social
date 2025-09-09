@@ -261,7 +261,14 @@ router.post('/:id/submit', authenticateToken, async (req: AuthRequest, res) => {
 // Helper function to generate game rounds
 async function generateGameRounds(gameId: string, maxRounds: number) {
   try {
+    console.log(`Generating ${maxRounds} rounds for game ${gameId}`);
     const tracks = await spotifyService.getRandomTracks([], maxRounds);
+    
+    if (tracks.length === 0) {
+      throw new Error('No tracks available for game rounds');
+    }
+    
+    console.log(`Generated ${tracks.length} tracks for game`);
     
     const roundsData = tracks.map((track, index) => ({
       gameId,
@@ -277,6 +284,8 @@ async function generateGameRounds(gameId: string, maxRounds: number) {
     await prisma.round.createMany({
       data: roundsData
     });
+    
+    console.log(`Successfully created ${roundsData.length} rounds for game ${gameId}`);
   } catch (error) {
     console.error('Failed to generate rounds:', error);
     throw new Error('Failed to generate game rounds');
