@@ -94,25 +94,122 @@ class SpotifyService {
   }
 
   async getRandomTracks(genres: string[] = [], limit: number = 5): Promise<SpotifyTrack[]> {
-    const queries = [
-      // Popular decades and genres
-      'year:1980-1989',
-      'year:1990-1999', 
-      'year:2000-2009',
-      'year:2010-2019',
-      'genre:pop',
-      'genre:rock',
-      'genre:hip-hop',
-      'genre:indie',
-      'genre:electronic'
+    // Check if Spotify credentials are configured
+    const clientId = process.env.SPOTIFY_CLIENT_ID;
+    const clientSecret = process.env.SPOTIFY_CLIENT_SECRET;
+    
+    if (!clientId || !clientSecret || 
+        clientId === 'your_spotify_client_id' || 
+        clientSecret === 'your_spotify_client_secret') {
+      console.warn('Spotify credentials not configured, using mock data');
+      return this.getMockTracks(limit);
+    }
+
+    try {
+      const queries = [
+        // Popular decades and genres
+        'year:1980-1989',
+        'year:1990-1999', 
+        'year:2000-2009',
+        'year:2010-2019',
+        'genre:pop',
+        'genre:rock',
+        'genre:hip-hop',
+        'genre:indie',
+        'genre:electronic'
+      ];
+
+      const randomQuery = queries[Math.floor(Math.random() * queries.length)];
+      const tracks = await this.searchTracks(randomQuery, 50);
+      
+      // Shuffle and return requested number
+      const shuffled = tracks.sort(() => 0.5 - Math.random());
+      return shuffled.slice(0, limit);
+    } catch (error) {
+      console.error('Spotify API failed, falling back to mock data:', error);
+      return this.getMockTracks(limit);
+    }
+  }
+
+  private getMockTracks(limit: number): SpotifyTrack[] {
+    const mockTracks: SpotifyTrack[] = [
+      {
+        id: 'mock-track-1',
+        name: 'Bohemian Rhapsody',
+        artists: [{ name: 'Queen' }],
+        album: {
+          name: 'A Night at the Opera',
+          release_date: '1975-11-21',
+          images: [{ url: 'https://via.placeholder.com/640x640/9333ea/ffffff?text=Queen', height: 640, width: 640 }]
+        },
+        preview_url: null,
+        popularity: 85
+      },
+      {
+        id: 'mock-track-2',
+        name: 'Billie Jean',
+        artists: [{ name: 'Michael Jackson' }],
+        album: {
+          name: 'Thriller',
+          release_date: '1982-11-30',
+          images: [{ url: 'https://via.placeholder.com/640x640/dc2626/ffffff?text=MJ', height: 640, width: 640 }]
+        },
+        preview_url: null,
+        popularity: 90
+      },
+      {
+        id: 'mock-track-3',
+        name: 'Smells Like Teen Spirit',
+        artists: [{ name: 'Nirvana' }],
+        album: {
+          name: 'Nevermind',
+          release_date: '1991-09-24',
+          images: [{ url: 'https://via.placeholder.com/640x640/059669/ffffff?text=Nirvana', height: 640, width: 640 }]
+        },
+        preview_url: null,
+        popularity: 88
+      },
+      {
+        id: 'mock-track-4',
+        name: 'Hey Jude',
+        artists: [{ name: 'The Beatles' }],
+        album: {
+          name: 'The Beatles 1967-1970',
+          release_date: '1968-08-26',
+          images: [{ url: 'https://via.placeholder.com/640x640/7c3aed/ffffff?text=Beatles', height: 640, width: 640 }]
+        },
+        preview_url: null,
+        popularity: 92
+      },
+      {
+        id: 'mock-track-5',
+        name: 'Sweet Child O\' Mine',
+        artists: [{ name: 'Guns N\' Roses' }],
+        album: {
+          name: 'Appetite for Destruction',
+          release_date: '1987-07-21',
+          images: [{ url: 'https://via.placeholder.com/640x640/ea580c/ffffff?text=GNR', height: 640, width: 640 }]
+        },
+        preview_url: null,
+        popularity: 86
+      },
+      {
+        id: 'mock-track-6',
+        name: 'Hotel California',
+        artists: [{ name: 'Eagles' }],
+        album: {
+          name: 'Hotel California',
+          release_date: '1976-12-08',
+          images: [{ url: 'https://via.placeholder.com/640x640/0891b2/ffffff?text=Eagles', height: 640, width: 640 }]
+        },
+        preview_url: null,
+        popularity: 89
+      }
     ];
 
-    const randomQuery = queries[Math.floor(Math.random() * queries.length)];
-    const tracks = await this.searchTracks(randomQuery, 50);
-    
     // Shuffle and return requested number
-    const shuffled = tracks.sort(() => 0.5 - Math.random());
-    return shuffled.slice(0, limit);
+    const shuffled = mockTracks.sort(() => 0.5 - Math.random());
+    return shuffled.slice(0, Math.min(limit, mockTracks.length));
   }
 
   async getTrackById(trackId: string): Promise<SpotifyTrack> {

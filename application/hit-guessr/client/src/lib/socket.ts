@@ -144,9 +144,34 @@ class SocketService {
     }
   }
 
+  onGameState(callback: (data: any) => void) {
+    if (this.socket) {
+      this.socket.on('game-state', callback);
+    }
+  }
+
+  onRoundResult(callback: (data: any) => void) {
+    if (this.socket) {
+      this.socket.on('round-result', callback);
+    }
+  }
+
   onError(callback: (data: any) => void) {
     if (this.socket) {
       this.socket.on('error', callback);
+    }
+  }
+
+  // General event listener method
+  on(event: string, callback: (data: any) => void) {
+    if (this.socket) {
+      this.socket.on(event, callback);
+    }
+  }
+
+  off(event: string, callback?: (data: any) => void) {
+    if (this.socket) {
+      this.socket.off(event, callback);
     }
   }
 
