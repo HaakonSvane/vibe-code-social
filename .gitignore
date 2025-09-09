@@ -1,0 +1,51 @@
+# Dependencies
+node_modules/
+
+# Production build
+dist/
+build/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS / Editor junk
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+
+# Coverage / testing
+coverage/
+*.lcov
+
+# Cache
+*.tsbuildinfo
+cache/
+.parcel-cache
+.turbo
+.eslintcache
+
+# Misc
+tmp/
+temp/
+.npm/
+.yarn/
+yarn.lock
+pnpm-lock.yaml
+package-lock.json
+
+# Leaflet tile cache (if you later implement one locally)
+tile-cache/
