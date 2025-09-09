@@ -6,11 +6,111 @@
     <title>Croissant Map</title>
     <link rel="icon" type="image/svg+xml" href="/croissant.svg" />
     <style>
-      body,html,#root { height:100%; margin:0; font-family: system-ui, sans-serif; }
+      body,html,#root { height:100%; margin:0; font-family: system-ui, sans-serif; overflow: hidden; }
       #root { display:flex; flex-direction:column; }
+      
+      /* Custom scrollbar styling for webkit browsers */
+      .pins-list-scroll::-webkit-scrollbar {
+        width: 8px;
+      }
+      
+      .pins-list-scroll::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 4px;
+      }
+      
+      .pins-list-scroll::-webkit-scrollbar-thumb {
+        background: #c1c1c1;
+        border-radius: 4px;
+      }
+      
+      .pins-list-scroll::-webkit-scrollbar-thumb:hover {
+        background: #a8a8a8;
+      }
+      
+      /* Drawer animations */
+      .drawer-container {
+        transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      
+      .drawer-backdrop {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0, 0, 0, 0.3);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s ease;
+        z-index: 999;
+        display: none; /* Hidden by default on desktop */
+      }
+      
+      .drawer-backdrop.open {
+        opacity: 1;
+        pointer-events: auto;
+      }
+      
+      /* Hamburger menu animations */
+      .hamburger-icon {
+        width: 18px;
+        height: 14px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        transition: transform 0.3s ease;
+      }
+      
+      .hamburger-icon.open {
+        transform: rotate(90deg);
+      }
+      
+      .hamburger-line {
+        width: 100%;
+        height: 2px;
+        border-radius: 1px;
+        transition: all 0.3s ease;
+      }
+      
+      @media (max-width: 768px) {
+        /* Show backdrop only on mobile */
+        .drawer-backdrop {
+          display: block !important;
+        }
+        
+        .drawer-container {
+          position: fixed !important;
+          right: 0;
+          top: 0;
+          height: 100vh !important;
+          z-index: 1001;
+          box-shadow: -2px 0 8px rgba(0,0,0,0.15);
+          transform: translateX(100%);
+          transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          width: 350px !important;
+        }
+        
+        .drawer-container.open {
+          transform: translateX(0);
+        }
+        
+        /* Mobile styles for floating hamburger button */
+        .floating-hamburger {
+          top: 10px !important;
+          right: 10px !important;
+          min-width: 50px !important;
+          padding: 10px !important;
+          border-radius: 50% !important;
+        }
+        
+        .floating-hamburger span {
+          display: none !important;
+        }
+      }
     </style>
-    <script type="module" crossorigin src="/assets/index-DC5MKMxf.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-CIGW-MKW.css">
+    <script type="module" crossorigin src="/assets/index-Cvr6R3iB.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-DaY3vAsZ.css">
   </head>
   <body>
     <div id="root"></div>
