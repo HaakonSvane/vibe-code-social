@@ -1,6 +1,6 @@
-import React from "react";
+import React, { useRef, useImperativeHandle, forwardRef } from "react";
 import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
-import { Icon } from "leaflet";
+import L, { Icon } from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { CroissantSpot } from "./types";
 
@@ -24,6 +24,11 @@ interface CroissantMapProps {
   onRemoveSpot: (id: string) => void;
 }
 
+// Map ref interface for imperative actions
+export interface CroissantMapRef {
+  navigateToSpot: (lat: number, lng: number, zoom?: number) => void;
+}
+
 const AddHandler: React.FC<AddHandlerProps> = ({ onAdd }) => {
   useMapEvents({
     click(e) {
@@ -33,34 +38,64 @@ const AddHandler: React.FC<AddHandlerProps> = ({ onAdd }) => {
   return null;
 };
 
-export const CroissantMap: React.FC<CroissantMapProps> = ({
-  spots,
-  onAddSpot,
-  onRemoveSpot,
-}) => {
-  return (
-    <div style={{ flex: 1, minHeight: 0 }}>
-      <MapContainer
-        center={spots[0] ? [spots[0].lat, spots[0].lng] : defaultCenter}
-        zoom={13}
-        style={{ height: "100%", width: "100%" }}
-      >
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
-        <AddHandler onAdd={onAddSpot} />
-        {spots.map((s) => (
-          <Marker
-            key={s.id}
-            position={[s.lat, s.lng]}
-            icon={croissantIcon}
-            eventHandlers={{
-              contextmenu: () => onRemoveSpot(s.id),
-            }}
-          />
-        ))}
-      </MapContainer>
-    </div>
-  );
+// Component to handle map navigation
+interface MapNavigatorProps {
+  mapRef: React.MutableRefObject<L.Map | null>;
+}
+
+const MapNavigator: React.FC<MapNavigatorProps> = ({ mapRef }) => {
+  const map = useMapEvents({});
+
+  React.useEffect(() => {
+    mapRef.current = map;
+  }, [map, mapRef]);
+
+  return null;
 };
+
+export const CroissantMap = forwardRef<CroissantMapRef, CroissantMapProps>(
+  ({ spots, onAddSpot, onRemoveSpot }, ref) => {
+    const mapRef = useRef<L.Map | null>(null);
+
+    useImperativeHandle(
+      ref,
+      () => ({
+        navigateToSpot: (lat: number, lng: number, zoom = 16) => {
+          if (mapRef.current) {
+            mapRef.current.flyTo([lat, lng], zoom, {
+              duration: 1.5,
+              easeLinearity: 0.1,
+            });
+          }
+        },
+      }),
+      []
+    );
+    return (
+      <div style={{ flex: 1, minHeight: 0 }}>
+        <MapContainer
+          center={spots[0] ? [spots[0].lat, spots[0].lng] : defaultCenter}
+          zoom={13}
+          style={{ height: "100%", width: "100%" }}
+        >
+          <TileLayer
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          />
+          <MapNavigator mapRef={mapRef} />
+          <AddHandler onAdd={onAddSpot} />
+          {spots.map((s) => (
+            <Marker
+              key={s.id}
+              position={[s.lat, s.lng]}
+              icon={croissantIcon}
+              eventHandlers={{
+                contextmenu: () => onRemoveSpot(s.id),
+              }}
+            />
+          ))}
+        </MapContainer>
+      </div>
+    );
+  }
+);

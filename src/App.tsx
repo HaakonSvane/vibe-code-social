@@ -1,5 +1,5 @@
 import React from "react";
-import { CroissantMap } from "./CroissantMap";
+import { CroissantMap, CroissantMapRef } from "./CroissantMap";
 import { Avatar } from "./Avatar";
 import { PinsList } from "./PinsList";
 import { CroissantSpot } from "./types";
@@ -9,6 +9,7 @@ export const App: React.FC = () => {
   const [spots, setSpots] = React.useState<CroissantSpot[]>(() => loadSpots());
   const [isDrawerOpen, setIsDrawerOpen] = React.useState(true);
   const [isMobile, setIsMobile] = React.useState(false);
+  const mapRef = React.useRef<CroissantMapRef>(null);
 
   // Check if we're on mobile
   React.useEffect(() => {
@@ -36,6 +37,16 @@ export const App: React.FC = () => {
       saveSpots(next);
       return next;
     });
+  }
+
+  function navigateToSpot(lat: number, lng: number) {
+    if (mapRef.current) {
+      mapRef.current.navigateToSpot(lat, lng);
+      // On mobile, close the drawer after navigation
+      if (isMobile) {
+        setIsDrawerOpen(false);
+      }
+    }
   }
 
   function updateSpot(updatedSpot: CroissantSpot) {
@@ -108,6 +119,7 @@ export const App: React.FC = () => {
       >
         <div style={{ flex: 1, display: "flex", position: "relative" }}>
           <CroissantMap
+            ref={mapRef}
             spots={spots}
             onAddSpot={addSpot}
             onRemoveSpot={removeSpot}
@@ -217,6 +229,7 @@ export const App: React.FC = () => {
                 spots={spots}
                 onRemoveSpot={removeSpot}
                 onUpdateSpot={updateSpot}
+                onNavigateToSpot={navigateToSpot}
               />
             </div>
           )}

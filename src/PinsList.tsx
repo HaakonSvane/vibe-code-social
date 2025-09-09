@@ -7,12 +7,14 @@ interface PinsListProps {
   spots: CroissantSpot[];
   onRemoveSpot: (id: string) => void;
   onUpdateSpot?: (updatedSpot: CroissantSpot) => void;
+  onNavigateToSpot?: (lat: number, lng: number) => void;
 }
 
 export const PinsList: React.FC<PinsListProps> = ({
   spots,
   onRemoveSpot,
   onUpdateSpot,
+  onNavigateToSpot,
 }) => {
   const [spotsWithAddresses, setSpotsWithAddresses] =
     useState<CroissantSpot[]>(spots);
@@ -206,105 +208,166 @@ export const PinsList: React.FC<PinsListProps> = ({
           minHeight: 0, // Important for flex child to shrink
         }}
       >
-        {spotsWithAddresses.map((spot) => (
-          <div
-            key={spot.id}
-            style={{
-              backgroundColor: "white",
-              padding: "16px",
-              borderRadius: "6px",
-              boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
-              border: "1px solid #e0e0e0",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "flex-start",
-                marginBottom: "8px",
-              }}
-            >
-              <div style={{ flex: 1 }}>
-                <div
-                  style={{
-                    fontWeight: "bold",
-                    color: "#333",
-                    marginBottom: "4px",
-                    fontSize: "14px",
-                  }}
-                >
-                  📍{" "}
-                  {loadingAddresses.has(spot.id) ? (
-                    <span style={{ color: "#666", fontStyle: "italic" }}>
-                      Loading address...
-                    </span>
-                  ) : (
-                    spot.address?.shortAddress ||
-                    `${spot.lat.toFixed(4)}, ${spot.lng.toFixed(4)}`
-                  )}
-                </div>
+        {spotsWithAddresses.map((spot) => {
+          const spotLocation =
+            spot.address?.shortAddress ||
+            `${spot.lat.toFixed(4)}, ${spot.lng.toFixed(4)}`;
+          const isClickable = !!onNavigateToSpot;
 
-                {spot.address && !loadingAddresses.has(spot.id) && (
+          return (
+            <div
+              key={spot.id}
+              role={isClickable ? "button" : undefined}
+              tabIndex={isClickable ? 0 : undefined}
+              style={{
+                backgroundColor: "white",
+                padding: "16px",
+                borderRadius: "6px",
+                boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                border: "1px solid #e0e0e0",
+                cursor: isClickable ? "pointer" : "default",
+                transition: "all 0.2s ease",
+              }}
+              onClick={() => {
+                if (onNavigateToSpot) {
+                  onNavigateToSpot(spot.lat, spot.lng);
+                }
+              }}
+              onKeyDown={(e) => {
+                if (onNavigateToSpot && (e.key === "Enter" || e.key === " ")) {
+                  e.preventDefault();
+                  onNavigateToSpot(spot.lat, spot.lng);
+                }
+              }}
+              onMouseOver={(e) => {
+                if (isClickable) {
+                  e.currentTarget.style.backgroundColor = "#f8f9fa";
+                  e.currentTarget.style.boxShadow =
+                    "0 4px 8px rgba(0,0,0,0.15)";
+                }
+              }}
+              onFocus={(e) => {
+                if (isClickable) {
+                  e.currentTarget.style.backgroundColor = "#f8f9fa";
+                  e.currentTarget.style.boxShadow =
+                    "0 4px 8px rgba(0,0,0,0.15)";
+                }
+              }}
+              onMouseOut={(e) => {
+                if (isClickable) {
+                  e.currentTarget.style.backgroundColor = "white";
+                  e.currentTarget.style.boxShadow = "0 2px 4px rgba(0,0,0,0.1)";
+                }
+              }}
+              onBlur={(e) => {
+                if (isClickable) {
+                  e.currentTarget.style.backgroundColor = "white";
+                  e.currentTarget.style.boxShadow = "0 2px 4px rgba(0,0,0,0.1)";
+                }
+              }}
+              aria-label={
+                isClickable
+                  ? `Navigate to croissant spot at ${spotLocation}`
+                  : undefined
+              }
+              title={
+                isClickable
+                  ? "Click to navigate to this spot on the map"
+                  : undefined
+              }
+            >
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "flex-start",
+                  marginBottom: "8px",
+                }}
+              >
+                <div style={{ flex: 1 }}>
+                  <div
+                    style={{
+                      fontWeight: "bold",
+                      color: "#333",
+                      marginBottom: "4px",
+                      fontSize: "14px",
+                    }}
+                  >
+                    📍{" "}
+                    {loadingAddresses.has(spot.id) ? (
+                      <span style={{ color: "#666", fontStyle: "italic" }}>
+                        Loading address...
+                      </span>
+                    ) : (
+                      spot.address?.shortAddress ||
+                      `${spot.lat.toFixed(4)}, ${spot.lng.toFixed(4)}`
+                    )}
+                  </div>
+
+                  {spot.address && !loadingAddresses.has(spot.id) && (
+                    <div
+                      style={{
+                        fontSize: "12px",
+                        color: "#666",
+                        marginBottom: "8px",
+                        lineHeight: "1.4",
+                      }}
+                    >
+                      {spot.address.fullAddress}
+                    </div>
+                  )}
+
                   <div
                     style={{
                       fontSize: "12px",
-                      color: "#666",
-                      marginBottom: "8px",
-                      lineHeight: "1.4",
+                      color: "#888",
+                      display: "flex",
+                      gap: "16px",
                     }}
                   >
-                    {spot.address.fullAddress}
+                    <span>📅 {formatDate(spot.createdAt)}</span>
+                    <span>
+                      🌍 {spot.lat.toFixed(6)}, {spot.lng.toFixed(6)}
+                    </span>
                   </div>
-                )}
-
-                <div
-                  style={{
-                    fontSize: "12px",
-                    color: "#888",
-                    display: "flex",
-                    gap: "16px",
-                  }}
-                >
-                  <span>📅 {formatDate(spot.createdAt)}</span>
-                  <span>
-                    🌍 {spot.lat.toFixed(6)}, {spot.lng.toFixed(6)}
-                  </span>
                 </div>
-              </div>
 
-              <button
-                onClick={() => onRemoveSpot(spot.id)}
-                style={{
-                  backgroundColor: "#ff6b6b",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "4px",
-                  padding: "6px 12px",
-                  fontSize: "12px",
-                  cursor: "pointer",
-                  marginLeft: "12px",
-                  height: "fit-content",
-                }}
-                onMouseOver={(e) => {
-                  e.currentTarget.style.backgroundColor = "#ff5252";
-                }}
-                onFocus={(e) => {
-                  e.currentTarget.style.backgroundColor = "#ff5252";
-                }}
-                onMouseOut={(e) => {
-                  e.currentTarget.style.backgroundColor = "#ff6b6b";
-                }}
-                onBlur={(e) => {
-                  e.currentTarget.style.backgroundColor = "#ff6b6b";
-                }}
-                title="Remove this croissant spot"
-              >
-                🗑️ Remove
-              </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation(); // Prevent triggering the spot navigation
+                    onRemoveSpot(spot.id);
+                  }}
+                  style={{
+                    backgroundColor: "#ff6b6b",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "4px",
+                    padding: "6px 12px",
+                    fontSize: "12px",
+                    cursor: "pointer",
+                    marginLeft: "12px",
+                    height: "fit-content",
+                  }}
+                  onMouseOver={(e) => {
+                    e.currentTarget.style.backgroundColor = "#ff5252";
+                  }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.backgroundColor = "#ff5252";
+                  }}
+                  onMouseOut={(e) => {
+                    e.currentTarget.style.backgroundColor = "#ff6b6b";
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.backgroundColor = "#ff6b6b";
+                  }}
+                  title="Remove this croissant spot"
+                >
+                  🗑️ Remove
+                </button>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
