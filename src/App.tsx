@@ -75,6 +75,14 @@ export const App: React.FC = () => {
     });
   }
 
+  React.useEffect(() => {
+    // After drawer open/close animation, invalidate map size
+    const t = setTimeout(() => {
+      mapRef.current?.invalidateSize?.();
+    }, 320); // slightly longer than CSS transition
+    return () => clearTimeout(t);
+  }, [isDrawerOpen]);
+
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
       {/* Backdrop for mobile only */}

@@ -46,6 +46,7 @@ interface CroissantMapProps {
 // Map ref interface for imperative actions
 export interface CroissantMapRef {
   navigateToSpot: (lat: number, lng: number, zoom?: number) => void;
+  invalidateSize?: () => void;
 }
 
 const AddHandler: React.FC<AddHandlerProps> = ({ onAdd }) => {
@@ -100,6 +101,7 @@ function RatingStars({ value, onChange }: { value?: number; onChange: (val: numb
 export const CroissantMap = forwardRef<CroissantMapRef, CroissantMapProps>(
   ({ spots, onAddSpot, onRemoveSpot, onUpdateSpot }, ref) => {
     const mapRef = useRef<L.Map | null>(null);
+    const containerRef = useRef<HTMLDivElement | null>(null);
 
     useImperativeHandle(
       ref,
@@ -112,11 +114,31 @@ export const CroissantMap = forwardRef<CroissantMapRef, CroissantMapProps>(
             });
           }
         },
+        invalidateSize: () => { mapRef.current?.invalidateSize(); }
       }),
       []
     );
+
+    // Observe container size changes (drawer open/close) and invalidate map size
+    React.useEffect(() => {
+      if (!containerRef.current) return;
+      const el = containerRef.current;
+      let timeout: number | null = null;
+      const ro = new ResizeObserver(() => {
+        if (timeout) window.clearTimeout(timeout);
+        timeout = window.setTimeout(() => {
+          mapRef.current?.invalidateSize();
+        }, 120); // slight debounce to wait for transition
+      });
+      ro.observe(el);
+      return () => {
+        if (timeout) window.clearTimeout(timeout);
+        ro.disconnect();
+      };
+    }, []);
+
     return (
-      <div style={{ flex: 1, minHeight: 0 }}>
+      <div ref={containerRef} style={{ flex: 1, minHeight: 0 }}>
         <MapContainer
           center={spots[0] ? [spots[0].lat, spots[0].lng] : defaultCenter}
           zoom={13}
