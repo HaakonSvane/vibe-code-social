@@ -11,3 +11,27 @@ After you have been assigned a pairing, your task is to create any full-stack ap
 
 ## AI tips and tricks
 After messing around with agent mode for a couple of months, experiences learned on the way that might help you get better results are found in `./ai-tips.md`. Note that this is tested on VS Code only. Most commonly used IDE's (Visual Studio, Rider) support AI chat, but all features mentioned in this post have not been tested.
+
+---
+
+## Croissant Map App
+
+Implements requirements in `context.md`:
+
+1. React + TypeScript frontend (Vite setup).
+2. Leaflet map with OpenStreetMap tiles. Click to add croissant spots (orange circles). Right-click a circle to remove. When 3+ points exist, a translucent convex hull polygon highlights the overall area.
+3. User avatar component (upload image; persists in localStorage) with default croissant icon.
+4. Map data (tiles) from OpenStreetMap. User-added spots persisted locally only.
+
+### Quick start
+```bash
+npm install
+npm run dev
+```
+
+Open the local URL (e.g. http://localhost:5173). Add spots by clicking the map.
+
+### Notes
+- Respect OpenStreetMap tile usage policy for production traffic.
+- Convex hull uses a simple Graham scan implementation; adequate for small sets.
+- No backend yet; future enhancement could sync spots to a server.
