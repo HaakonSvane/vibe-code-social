@@ -1,16 +1,9 @@
 import React from "react";
-import {
-  MapContainer,
-  TileLayer,
-  Marker,
-  Polygon,
-  useMapEvents,
-} from "react-leaflet";
+import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
 import { Icon } from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { CroissantSpot } from "./types";
 import { loadSpots, saveSpots } from "./storage";
-import { convexHull } from "./convexHull";
 
 // Create a custom croissant icon
 const croissantIcon = new Icon({
@@ -62,9 +55,6 @@ export const CroissantMap: React.FC = () => {
     });
   }
 
-  const hull =
-    spots.length >= 3 ? convexHull(spots.map((s) => [s.lat, s.lng])) : null;
-
   return (
     <div style={{ flex: 1, minHeight: 0 }}>
       <MapContainer
@@ -77,12 +67,6 @@ export const CroissantMap: React.FC = () => {
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         <AddHandler onAdd={addSpot} />
-        {hull && (
-          <Polygon
-            positions={hull}
-            pathOptions={{ color: "#ff6f61", weight: 2, fillOpacity: 0.15 }}
-          />
-        )}
         {spots.map((s) => (
           <Marker
             key={s.id}
